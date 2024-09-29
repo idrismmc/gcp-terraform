@@ -1,0 +1,48 @@
+name: Terraform Workflow
+
+on:
+  push:
+    branches: [dev, stage, main]
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Set Environment Variables
+        run: |
+          if [ ${{ github.ref }} == 'refs/heads/dev' ]; then
+            echo "TF_VAR_project_id=${{secrets.DEV_PROJECT_ID}}" >> $GITHUB_ENV
+            echo "BUCKET_NAME=${{secrets.DEV_BUCKET_NAME}}" >> $GITHUB_ENV
+          elif [ ${{ github.ref }} == 'refs/heads/stage' ]; then
+            echo "TF_VAR_project_id=${{secrets.STAGE_PROJECT_ID}}" >> $GITHUB_ENV
+            echo "BUCKET_NAME=${{secrets.STAGE_BUCKET_NAME}}" >> $GITHUB_ENV
+          elif [ ${{ github.ref }} == 'refs/heads/main' ]; then
+            echo "TF_VAR_project_id=${{secrets.PROD_PROJECT_ID}}" >> $GITHUB_ENV
+            echo "BUCKET_NAME=${{secrets.PROD_BUCKET_NAME}}" >> $GITHUB_ENV
+          fi
+
+      - name: Terraform Init
+        env:
+          GOOGLE_CREDENTIALS: ${{github.ref == 'refs/heads/dev' && secrets.DEV_TF_SERVICE_ACCOUNT_KEY || github.ref == 'refs/heads/stage' && secrets.STAGE_TF_SERVICE_ACCOUNT_KEY || github.ref == 'refs/heads/main' && secrets.PROD_TF_SERVICE_ACCOUNT_KEY}}
+        working-directory: ./environments/${{github.ref == 'refs/heads/dev' && 'dev' || github.ref == 'refs/heads/stage' && 'stage' || github.ref == 'refs/heads/main' && 'prod'}}
+        run: |
+          terraform init  -backend-config="bucket=$BUCKET_NAME"
+
+      - name: Terraform Plan
+        env:
+          GOOGLE_CREDENTIALS: ${{github.ref == 'refs/heads/dev' && secrets.DEV_TF_SERVICE_ACCOUNT_KEY || github.ref == 'refs/heads/stage' && secrets.STAGE_TF_SERVICE_ACCOUNT_KEY || github.ref == 'refs/heads/main' && secrets.PROD_TF_SERVICE_ACCOUNT_KEY}}
+        working-directory: ./environments/${{ github.ref == 'refs/heads/dev' && 'dev' || github.ref == 'refs/heads/stage' && 'stage' || github.ref == 'refs/heads/main' && 'prod' }}
+        run: |
+          terraform plan
+
+      - name: Terraform Apply
+        env:
+          GOOGLE_CREDENTIALS: ${{github.ref == 'refs/heads/dev' && secrets.DEV_TF_SERVICE_ACCOUNT_KEY || github.ref == 'refs/heads/stage' && secrets.STAGE_TF_SERVICE_ACCOUNT_KEY || github.ref == 'refs/heads/main' && secrets.PROD_TF_SERVICE_ACCOUNT_KEY}}
+        working-directory: ./environments/${{ github.ref == 'refs/heads/dev' && 'dev' || github.ref == 'refs/heads/stage' && 'stage' || github.ref == 'refs/heads/main' && 'prod' }}
+        run: terraform apply -auto-approve
