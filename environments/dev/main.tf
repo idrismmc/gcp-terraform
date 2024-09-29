@@ -29,8 +29,8 @@ provider "google" {
 
 module "cloud_run_service_account" {
   source = "../../modules/gcp-service-account"
-  service_account_id = "mountire-cloudrun"
-  display_name = "Mountire Cloud Run Service Account"
+  service_account_id = "gcp-terraform-dev"
+  display_name = "Cloud Run Service Account"
   project_id = var.project_id
   roles = [
     "roles/secretmanager.secretAccessor",
