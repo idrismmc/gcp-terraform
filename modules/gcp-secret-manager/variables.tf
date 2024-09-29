@@ -7,5 +7,5 @@ variable "secret_id" {
 variable "label" {
     description = "The label of the secret"
     type = string
-    default = "mountire-cloudrun"
+    default = "gcp-terraform-cloudrun"
 }
