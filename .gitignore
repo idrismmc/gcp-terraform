@@ -1,0 +1,4 @@
+*-tf-sa.json
+**/.terraform/*
+*.auto.tfvars
+**/.terraform.lock.hcl
